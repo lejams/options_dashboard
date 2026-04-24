@@ -6,6 +6,7 @@ import pandas as pd
 import numpy as np
 import os
 import pyarrow.parquet as pq
+import pyarrow.dataset as ds
 
 from app import app, tickers, DATA_ROOT
 
@@ -15,19 +16,26 @@ tickers.sort()
 MASTER_DIR = os.path.join(DATA_ROOT, "master")
 TENOR_ORDER = ["1w", "2w", "3w", "1m", "2m", "3m", "6m", "1y", "2y"]
 TENOR_RANK = {tenor: i for i, tenor in enumerate(TENOR_ORDER)}
+MASTER_COLUMNS = ["date", "surface_type", "tenor", "strike_pct", "vol"]
+_VOL_SURFACE_CACHE = {}
 
 
-def read_parquet_safe(path: str) -> pd.DataFrame:
-    table = pq.read_table(path)
+def read_parquet_safe(path: str, columns: list[str] | None = None) -> pd.DataFrame:
+    table = pq.read_table(path, columns=columns)
     return table.to_pandas()
 
 
-def load_master_for_ticker(ticker: str) -> pd.DataFrame:
+def load_master_for_ticker(ticker: str, surface_type: str) -> pd.DataFrame:
     path = os.path.join(MASTER_DIR, f"{ticker}_master.parquet")
     if not os.path.exists(path):
         return pd.DataFrame()
 
-    df = read_parquet_safe(path)
+    dataset = ds.dataset(path, format="parquet")
+    table = dataset.to_table(
+        columns=MASTER_COLUMNS,
+        filter=ds.field("surface_type") == surface_type,
+    )
+    df = table.to_pandas()
     if df.empty:
         return df
 
@@ -35,19 +43,18 @@ def load_master_for_ticker(ticker: str) -> pd.DataFrame:
     df["date"] = pd.to_datetime(df["date"], errors="coerce")
     df["strike_pct"] = pd.to_numeric(df["strike_pct"], errors="coerce")
     df["vol"] = pd.to_numeric(df["vol"], errors="coerce")
-    df["surface_type"] = df["surface_type"].astype(str)
     df["tenor"] = df["tenor"].astype(str)
 
-    df = df.dropna(subset=["date", "surface_type", "tenor", "strike_pct", "vol"])
+    df = df.dropna(subset=["date", "tenor", "strike_pct", "vol"])
     return df
 
 
 def build_latest_vol_surface(ticker: str, surface_type: str) -> tuple[pd.DataFrame, pd.Timestamp]:
-    df = load_master_for_ticker(ticker)
-    if df.empty:
-        return pd.DataFrame(), pd.NaT
+    cache_key = (ticker, surface_type)
+    if cache_key in _VOL_SURFACE_CACHE:
+        return _VOL_SURFACE_CACHE[cache_key]
 
-    df = df[df["surface_type"] == surface_type].copy()
+    df = load_master_for_ticker(ticker, surface_type)
     if df.empty:
         return pd.DataFrame(), pd.NaT
 
@@ -64,7 +71,9 @@ def build_latest_vol_surface(ticker: str, surface_type: str) -> tuple[pd.DataFra
     df["tenor_rank"] = df["tenor"].map(TENOR_RANK)
     df = df.dropna(subset=["tenor_rank"]).sort_values(["tenor_rank", "strike_pct"]).reset_index(drop=True)
 
-    return df, latest_date
+    result = (df, latest_date)
+    _VOL_SURFACE_CACHE[cache_key] = result
+    return result
 
 
 def nearest_available_strikes(df_surface: pd.DataFrame, targets: list[float]) -> list[float]:
