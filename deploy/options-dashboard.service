@@ -1,0 +1,16 @@
+[Unit]
+Description=Options Dashboard
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/options_dashboard
+EnvironmentFile=/opt/options_dashboard/.env
+ExecStart=/opt/options_dashboard/.venv/bin/gunicorn -b 0.0.0.0:8050 index:server
+Restart=always
+RestartSec=5
+User=www-data
+Group=www-data
+
+[Install]
+WantedBy=multi-user.target

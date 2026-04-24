@@ -1,0 +1,56 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+*.egg-info/
+.eggs/
+dist/
+build/
+* copy.*
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+*.p12
+*.json
+!assets/*.json
+
+# Data generated or mounted outside Git
+data/
+Data/
+raw_percent/
+percentile/
+percentile_master/
+strategies/
+strategies_master/
+master/
+reports/
+logs/
+audit/
+*.csv
+*.parquet
+*.feather
+*.h5
+*.xlsx
+*.xls
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# OS / editor
+.DS_Store
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
