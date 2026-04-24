@@ -1,26 +1,35 @@
 import os
+from functools import lru_cache
 import numpy as np
 import pandas as pd
 import pyarrow.parquet as pq
+import pyarrow.dataset as ds
 
 from app import DATA_ROOT
 
 
 LOOKBACK_DAYS = 365 * 2
 MASTER_DIR = os.path.join(DATA_ROOT, "master")
+MASTER_COLUMNS = ["date", "surface_type", "option_type", "tenor", "strike_pct", "price_percent"]
+MAX_SOLVER_COMBOS = 120
 
 
-def read_parquet_safe(path: str) -> pd.DataFrame:
-    table = pq.read_table(path)
+def read_parquet_safe(path: str, columns: list[str] | None = None) -> pd.DataFrame:
+    table = pq.read_table(path, columns=columns)
     return table.to_pandas()
 
 
-def load_master_for_ticker(ticker: str) -> pd.DataFrame:
+def load_master_for_ticker(ticker: str, surface_type: str) -> pd.DataFrame:
     path = os.path.join(MASTER_DIR, f"{ticker}_master.parquet")
     if not os.path.exists(path):
         raise FileNotFoundError(f"Master file not found for {ticker}: {path}")
 
-    df = read_parquet_safe(path)
+    dataset = ds.dataset(path, format="parquet")
+    table = dataset.to_table(
+        columns=MASTER_COLUMNS,
+        filter=ds.field("surface_type") == surface_type,
+    )
+    df = table.to_pandas()
     if df.empty:
         return df
 
@@ -37,7 +46,7 @@ def load_master_for_ticker(ticker: str) -> pd.DataFrame:
 
 
 def build_node_cache(df_master: pd.DataFrame, surface_type: str):
-    df = df_master[df_master["surface_type"] == surface_type].copy()
+    df = df_master.copy()
     cache = {}
 
     grouped = df.groupby(["option_type", "tenor", "strike_pct"], dropna=False)
@@ -51,6 +60,12 @@ def build_node_cache(df_master: pd.DataFrame, surface_type: str):
         cache[key] = s
 
     return cache
+
+
+@lru_cache(maxsize=8)
+def get_node_cache(ticker: str, surface_type: str):
+    df_master = load_master_for_ticker(ticker, surface_type=surface_type)
+    return build_node_cache(df_master, surface_type=surface_type)
 
 
 def strike_increment_from_tenor(tenor: str) -> float:
@@ -171,8 +186,7 @@ def get_combo_detail(
         raise ValueError("sf_value must be 'S' or 'F'")
 
     surface_type = "spot" if sf_value == "S" else "fwd"
-    df_master = load_master_for_ticker(ticker)
-    cache = build_node_cache(df_master, surface_type=surface_type)
+    cache = get_node_cache(ticker, surface_type)
 
     combo_series = compute_combo_series(
         cache=cache,
@@ -246,8 +260,7 @@ def build_solver_matrix(
 
     surface_type = "spot" if sf_value == "S" else "fwd"
 
-    df_master = load_master_for_ticker(ticker)
-    cache = build_node_cache(df_master, surface_type=surface_type)
+    cache = get_node_cache(ticker, surface_type)
 
     increment_1 = strike_increment_from_tenor(tenor_1)
     increment_2 = strike_increment_from_tenor(tenor_2)
@@ -256,8 +269,11 @@ def build_solver_matrix(
     strike_group_2 = make_strike_grid(min_strike_2, max_strike_2, increment_2)
 
     total_combos = len(strike_group_1) * len(strike_group_2)
-    if total_combos > 400:
-        raise ValueError(f"Grid too large: {total_combos} combinations. Please reduce strike ranges.")
+    if total_combos > MAX_SOLVER_COMBOS:
+        raise ValueError(
+            f"Grid too large: {total_combos} combinations. "
+            f"Please reduce strike ranges to {MAX_SOLVER_COMBOS} combinations or fewer."
+        )
 
     rows = []
     latest_dates = []
