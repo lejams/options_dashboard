@@ -61,6 +61,33 @@ cp .env.example .env
 
 Edit `.env` and set the real data path and credentials if API scripts will run on the VM.
 
+You can also run the bootstrap helper from the VM:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/lejams/options_dashboard/main/deploy/bootstrap_azure_vm.sh -o bootstrap_azure_vm.sh
+bash bootstrap_azure_vm.sh
+```
+
+## Data Deployment
+
+The local data directory is expected at:
+
+```text
+/Users/ismailje/Documents/dashboard_macro/data/vm_option_data_full_20260322
+```
+
+Sync it to the VM with:
+
+```bash
+bash deploy/sync_data_to_vm.sh azureuser@YOUR_VM_IP /opt/options_data
+```
+
+Then set this in `/opt/options_dashboard/.env`:
+
+```bash
+OPTIONS_DATA_ROOT=/opt/options_data
+```
+
 For a persistent service, copy `deploy/options-dashboard.service` to `/etc/systemd/system/options-dashboard.service`, then:
 
 ```bash
@@ -68,6 +95,15 @@ sudo systemctl daemon-reload
 sudo systemctl enable options-dashboard
 sudo systemctl start options-dashboard
 sudo systemctl status options-dashboard
+```
+
+To expose the app through nginx on port 80:
+
+```bash
+sudo cp deploy/nginx-options-dashboard.conf /etc/nginx/sites-available/options-dashboard
+sudo ln -sf /etc/nginx/sites-available/options-dashboard /etc/nginx/sites-enabled/options-dashboard
+sudo nginx -t
+sudo systemctl reload nginx
 ```
 
 ## Docker
