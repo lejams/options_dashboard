@@ -11,7 +11,7 @@ import pages.plot_dash
 import pages.solver_dash
 import pages.vol_dash
 
-from app import app, env, tickers, server, PERCENTILE_MASTER_PATH
+from app import app, env, tickers, server, PERCENTILE_MASTER_PATH, today_str
 
 
 tickers.sort()
@@ -19,15 +19,14 @@ tickers.sort()
 
 navbar = dbc.NavbarSimple(
     children=[
-        dbc.NavItem(dbc.NavLink("Strategies", href="/option-strategies")),
-        dbc.NavItem(dbc.NavLink("Solver", href="/option-solver")),
-        dbc.NavItem(dbc.NavLink("Graph", href="/option-graph")),
-        dbc.NavItem(dbc.NavLink("Vol", href="/vol")),
-        dbc.NavItem(dbc.NavLink("Main", href="/")),
+        dbc.NavItem(dbc.NavLink("Main", href="/", active="exact")),
+        dbc.NavItem(dbc.NavLink("Vol Surface", href="/vol", active="exact")),
+        dbc.NavItem(dbc.NavLink("Solver", href="/option-solver", active="exact")),
+        dbc.NavItem(dbc.NavLink("Graph", href="/option-graph", active="exact")),
+        dbc.NavItem(dbc.NavLink("Strategies", href="/option-strategies", active="exact")),
     ],
-    brand="Option Strategies",
-    brand_href="#",
-    color="primary",
+    brand="Options Dashboard",
+    brand_href="/",
     dark=True,
     className="custom-navbar",
 )
@@ -35,56 +34,73 @@ navbar = dbc.NavbarSimple(
 
 main_page_layout = html.Div(
     [
-        html.H1(
-            "Welcome to the Options Dashboard",
-            style={
-                "textAlign": "center",
-                "color": "#ffffff",
-                "background": "#333333",
-                "marginBottom": "30px",
-            },
-        ),
-        dcc.Dropdown(
-            id="asset-class-dropdown",
-            options=[{"label": i.split()[0], "value": i} for i in tickers],
-            value="SPX",
-            placeholder="Asset Classes",
-            className="control control-dropdown",
-            multi=False,
-        ),
-        dcc.Dropdown(
-            id="spot-fwd-dropdown",
-            options=[{"label": i, "value": i} for i in ["Spot", "Forward"]],
-            value="Forward",
-            placeholder="Spot/Forward",
-            className="control control-dropdown",
-            multi=False,
-        ),
-        dcc.Dropdown(
-            id="duration-dropdown",
-            options=[{"label": i, "value": i} for i in ["Short", "Medium", "Long"]],
-            value="Short",
-            placeholder="Duration",
-            className="control control-dropdown",
-            multi=False,
+        html.Div(
+            [
+                html.Div(
+                    [
+                        html.H1("Market Option Percentiles", className="page-title"),
+                        html.P(
+                            "Latest option price percentile surfaces for calls and puts.",
+                            className="page-subtitle",
+                        ),
+                    ]
+                ),
+            ],
+            className="page-header",
         ),
         html.Div(
             [
-                dcc.Graph(id="heatmap-graph-spot-p"),
-                dcc.Graph(id="heatmap-graph-spot-c"),
+                html.Span(["Environment:", html.Strong(env.upper())], className="metric-pill"),
+                html.Span(["Tickers:", html.Strong(str(len(tickers)))], className="metric-pill"),
+                html.Span(["Latest raw date:", html.Strong(today_str)], className="metric-pill"),
             ],
-            className="centered-graph",
+            className="status-strip",
+        ),
+        html.Div(
+            [
+                dcc.Dropdown(
+                    id="asset-class-dropdown",
+                    options=[{"label": i.split()[0], "value": i} for i in tickers],
+                    value="SPX",
+                    placeholder="Asset",
+                    className="control control-dropdown",
+                    multi=False,
+                ),
+                dcc.Dropdown(
+                    id="spot-fwd-dropdown",
+                    options=[{"label": i, "value": i} for i in ["Spot", "Forward"]],
+                    value="Forward",
+                    placeholder="Surface",
+                    className="control control-dropdown",
+                    multi=False,
+                ),
+                dcc.Dropdown(
+                    id="duration-dropdown",
+                    options=[{"label": i, "value": i} for i in ["Short", "Medium", "Long"]],
+                    value="Short",
+                    placeholder="Tenor bucket",
+                    className="control control-dropdown",
+                    multi=False,
+                ),
+            ],
+            className="filter-bar",
+        ),
+        html.Div(
+            [
+                html.Div(
+                    dcc.Graph(id="heatmap-graph-spot-p", config={"displayModeBar": False}),
+                    className="panel graph-panel",
+                ),
+                html.Div(
+                    dcc.Graph(id="heatmap-graph-spot-c", config={"displayModeBar": False}),
+                    className="panel graph-panel",
+                ),
+            ],
+            className="graph-grid",
         ),
         html.Div(id="on-load", style={"display": "none"}),
     ],
-    style={
-        "maxWidth": "1200px",
-        "margin": "40px auto",
-        "padding": "20px",
-        "boxShadow": "0px 4px 8px rgba(0,0,0,0.5)",
-        "borderRadius": "8px",
-        "backgroundColor": "#ecf0f1",
-    },
+    className="app-shell",
 )
 
 
@@ -194,8 +210,9 @@ def update_heatmap(_, asset, sf_label, duration):
             ),
             autosize=True,
             xaxis_side="top",
-            width=1000,
-            height=600,
+            height=520,
+            margin=dict(l=56, r=24, t=66, b=72),
+            template="plotly_white",
             annotations=[
                 dict(
                     text=f"Option Prices Percentile ({asset}) {latest_date_str}",
@@ -250,8 +267,9 @@ def update_heatmap(_, asset, sf_label, duration):
             ),
             autosize=True,
             xaxis_side="top",
-            width=1000,
-            height=600,
+            height=520,
+            margin=dict(l=56, r=24, t=66, b=72),
+            template="plotly_white",
             annotations=[
                 dict(
                     text=f"Option Prices Percentile ({asset}) {latest_date_str}",

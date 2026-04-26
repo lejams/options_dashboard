@@ -198,11 +198,24 @@ def make_heatmap_figure(df_surface: pd.DataFrame, latest_date: pd.Timestamp, tic
 
 layout = dbc.Container(
     [
+        html.Div(
+            [
+                html.Div(
+                    [
+                        html.H1("Vol Surface", className="page-title"),
+                        html.P(
+                            "Inspect latest volatility smiles, term structures, and heatmaps.",
+                            className="page-subtitle",
+                        ),
+                    ]
+                ),
+            ],
+            className="page-header",
+        ),
         dbc.Row(
             [
                 dbc.Col(
                     [
-                        html.H2("Vol Surface", style={"marginBottom": "20px"}),
                         dcc.Dropdown(
                             id="vol-ticker-dropdown",
                             options=[{"label": t.split()[0], "value": t} for t in tickers],
@@ -212,11 +225,11 @@ layout = dbc.Container(
                             multi=False,
                         ),
                     ],
-                    width=6,
+                    md=6,
+                    xs=12,
                 ),
                 dbc.Col(
                     [
-                        html.Div(style={"height": "38px"}),
                         dcc.Dropdown(
                             id="vol-surface-dropdown",
                             options=[
@@ -229,9 +242,11 @@ layout = dbc.Container(
                             multi=False,
                         ),
                     ],
-                    width=6,
+                    md=6,
+                    xs=12,
                 ),
-            ]
+            ],
+            className="filter-bar",
         ),
         dbc.Row(
             [
@@ -248,22 +263,24 @@ layout = dbc.Container(
                     width=12,
                 )
             ],
-            style={"marginTop": "20px"},
+            style={"marginTop": "12px"},
         ),
         dbc.Row(
             [
                 dbc.Col(
                     dcc.Loading(
                         type="default",
-                        children=dcc.Graph(id="vol-main-graph"),
+                        children=dcc.Graph(id="vol-main-graph", config={"displayModeBar": False}),
                     ),
                     width=12,
+                    className="panel graph-panel",
                 )
             ],
             style={"marginTop": "20px"},
         ),
     ],
     fluid=True,
+    className="app-shell",
 )
 
 

@@ -16,17 +16,23 @@ tenors = ["1w", "2w", "3w", "1m", "2m", "3m", "6m", "1y", "2y"]
 
 layout = dbc.Container(
     [
+        html.Div(
+            [
+                html.Div(
+                    [
+                        html.H1("Solver", className="page-title"),
+                        html.P(
+                            "Build two-leg option grids and compare current percentile levels.",
+                            className="page-subtitle",
+                        ),
+                    ]
+                ),
+                html.Span(["Max grid:", html.Strong("120 combinations")], className="metric-pill"),
+            ],
+            className="page-header",
+        ),
         dbc.Row(
             [
-                html.H2(
-                    "Solve option percentiles for combinations of strikes",
-                    style={
-                        "textAlign": "center",
-                        "color": "#ffffff",
-                        "background": "#333333",
-                        "marginBottom": "30px",
-                    },
-                ),
                 dbc.Row(
                     [
                         dbc.Col(
@@ -246,10 +252,11 @@ layout = dbc.Container(
                             id="loading",
                             type="default",
                             children=[dcc.Graph(id="graph-output")],
-                            fullscreen=True,
+                            fullscreen=False,
                         ),
                     ],
                     width=12,
+                    className="panel graph-panel",
                 ),
             ]
         ),
@@ -278,6 +285,7 @@ layout = dbc.Container(
         ),
     ],
     fluid=True,
+    className="app-shell",
 )
 
 

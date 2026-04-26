@@ -100,11 +100,21 @@ def combo_sort_key(combo):
 
 def get_color_from_percentile(percentile, colorscale):
     if pd.isna(percentile):
-        return "#FFFFFF"
+        return "#f8fafc"
 
     percentile = max(0, min(100, float(percentile)))
     index = int((percentile / 100) * (len(colorscale) - 1))
     return colorscale[index]
+
+
+def get_text_color_from_percentile(percentile):
+    if pd.isna(percentile):
+        return "#111827"
+
+    percentile = float(percentile)
+    if percentile <= 12 or percentile >= 88:
+        return "#ffffff"
+    return "#111827"
 
 
 def title_from_strategy_name(strategy):
@@ -196,13 +206,26 @@ def build_strategy_table_payload(df_all, strategy):
     latest_date_str = latest_date.strftime("%Y-%m-%d") if pd.notna(latest_date) else "N/A"
     title = f"{title_from_strategy_name(strategy)} {latest_date_str}"
 
-    colorscale = px.colors.sequential.RdBu
+    colorscale = [
+        "#b91c1c",
+        "#dc4f43",
+        "#ec7c6d",
+        "#f3aaa0",
+        "#f9d8d2",
+        "#f8fafc",
+        "#d7eaf3",
+        "#acd4e6",
+        "#75b6d7",
+        "#3f91c1",
+        "#1f6fa8",
+    ]
 
     style_data_conditional = [
         {
             "if": {"column_id": "Percentile", "row_index": i},
-            "background_color": get_color_from_percentile(row["Percentile Numeric"], colorscale),
-            "color": "white" if pd.notna(row["Percentile Numeric"]) and row["Percentile Numeric"] <= 50 else "black",
+            "backgroundColor": get_color_from_percentile(row["Percentile Numeric"], colorscale),
+            "color": get_text_color_from_percentile(row["Percentile Numeric"]),
+            "fontWeight": "700",
         }
         for i, row in display_df.iterrows()
     ] + [
