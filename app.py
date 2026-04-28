@@ -66,5 +66,3 @@ tickers = ['SPX', 'QQQ US', 'DIA US', 'IWM US', 'GLD US', 'XLF US', 'XLE US', 'X
             'TLT UQ', 'XLK UP','XHB UP', 'SLV UP', 'USO UP', 'SX5E', 'NKY','NDX', 'RTY',
             'DAX', 'UKX', 'SMI', 'HSCEI', 'HSI', 'KOSPI2', 'AS51'
             ]
-problematic_tickers = ['AS51', 'DAX', 'HSCEI', 'HSI', 'KOSPI2', 'SMI', 'UKX']
-tickers = [t for t in tickers if t not in problematic_tickers]
