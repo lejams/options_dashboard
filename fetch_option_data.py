@@ -65,11 +65,29 @@ def get_base_data_dir():
 
 
 def get_raw_percent_dir():
+    override = os.getenv("RAW_PERCENT_DIR")
+    if override:
+        return override
     return os.path.join(get_base_data_dir(), "raw_percent")
 
 
 def get_reports_dir():
     return os.path.join(get_base_data_dir(), "reports")
+
+
+def get_payout_currency(underlyer):
+    currencies = {
+        "AS51": "AUD",
+        "SX5E": "EUR",
+        "DAX": "EUR",
+        "HSCEI": "HKD",
+        "HSI": "HKD",
+        "KOSPI2": "KRW",
+        "NKY": "JPY",
+        "SMI": "CHF",
+        "UKX": "GBP",
+    }
+    return currencies.get(underlyer, "USD")
 
 
 def authenticate(username, password, max_attempts=4, backoff_seconds=2):
@@ -528,12 +546,7 @@ def generate_fwd_option_percent_df(auth_token, date, underlyer, CP, tenor_strike
 
 def save_single_spot_option(auth_token, underlyer, date, CP, folder_name):
     try:
-        if underlyer == "SX5E":
-            ccy = "EUR"
-        elif underlyer == "NKY":
-            ccy = "JPY"
-        else:
-            ccy = "USD"
+        ccy = get_payout_currency(underlyer)
 
         df, df_vol = generate_option_percent_df(auth_token, date, underlyer, CP, ccy)
 
@@ -585,12 +598,7 @@ def save_spot_option_data(days_list, underlyers, auth_token, folder_name):
 
 def save_single_fwd_option(auth_token, underlyer, date, CP, folder_name):
     try:
-        if underlyer == "SX5E":
-            ccy = "EUR"
-        elif underlyer == "NKY":
-            ccy = "JPY"
-        else:
-            ccy = "USD"
+        ccy = get_payout_currency(underlyer)
 
         fwd_strikes = extract_price_and_forwardpoints(auth_token, date, underlyer, ccy)
         df, df_vol = generate_fwd_option_percent_df(auth_token, date, underlyer, CP, fwd_strikes, ccy)
