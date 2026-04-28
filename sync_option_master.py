@@ -337,11 +337,18 @@ def transform_block_to_master_rows(raw_dir: str, block: dict):
 
 
 def infer_currency(underlyer: str) -> str:
-    if underlyer == "SX5E":
-        return "EUR"
-    if underlyer == "NKY":
-        return "JPY"
-    return "USD"
+    currencies = {
+        "AS51": "AUD",
+        "SX5E": "EUR",
+        "DAX": "EUR",
+        "HSCEI": "HKD",
+        "HSI": "HKD",
+        "KOSPI2": "KRW",
+        "NKY": "JPY",
+        "SMI": "CHF",
+        "UKX": "GBP",
+    }
+    return currencies.get(underlyer, "USD")
 
 
 def load_existing_master(master_dir: str, ticker: str):
